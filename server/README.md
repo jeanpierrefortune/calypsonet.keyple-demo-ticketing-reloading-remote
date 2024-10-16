@@ -4,16 +4,16 @@ This is the repository for the Java Server of the Keyple Reload Demo application
 
 The server is accessible from the client application and can be monitored via a GUI.
 
-Read the main [README](https://github.com/calypsonet/keyple-java-demo-remote#readme) to understand the purpose of this
+Read the main [README](https://github.com/calypsonet/keyple-demo-ticketing-reloading-remote#readme) to understand the purpose of this
 demo.
 
 ## Running the server from the executable JAR file
 
-The server is packaged as an executable jar `keyple-demo-remote-server-X.Y.Z-full.jar` which can be started with the
+The server is packaged as an executable jar `keyple-demo-ticketing-reloading-server-X.Y.Z-full.jar` which can be started with the
 command: 
 
 ```
-java -jar keyple-demo-remote-server-X.Y.Z-full.jar
+java -jar keyple-demo-ticketing-reloading-server-X.Y.Z-full.jar
 ```
 
 A web browser should be launched automatically pointing to the server dashboard application.
@@ -34,7 +34,7 @@ matching regex of your PC/SC reader.
 The command hereafter starts the server with the PCSC reader `Identive CLOUD 2700 R Smart Card Reader`
 
 ```
-java "-Dsam.pcsc.reader.filter=Identive CLOUD 2700 R Smart Card Reader.*" -jar keyple-demo-remote-server-X.Y.Z-full.jar 
+java "-Dsam.pcsc.reader.filter=Identive CLOUD 2700 R Smart Card Reader.*" -jar keyple-demo-ticketing-reloading-server-X.Y.Z-full.jar 
 ```
 
 - **For Windows Powershell:**
@@ -42,7 +42,7 @@ java "-Dsam.pcsc.reader.filter=Identive CLOUD 2700 R Smart Card Reader.*" -jar k
 Beware of the syntax on Windows Powershell to pass an argument
 
 ```
-java '-Dsam.pcsc.reader.filter=Identive CLOUD 2700 R Smart Card Reader.*' -jar .\keyple-demo-remote-server-X.Y.Z-full.jar
+java '-Dsam.pcsc.reader.filter=Identive CLOUD 2700 R Smart Card Reader.*' -jar .\keyple-demo-ticketing-reloading-server-X.Y.Z-full.jar
 ```
 
 ## Running the server from the sources (for developers)
@@ -72,4 +72,4 @@ You can now build and run the server:
 ./gradlew startServer
 ```
 
-The build command produces the `keyple-demo-remote-server-X.Y.Z-full.jar` JAR file in the `build` directory.
+The build command produces the `keyple-demo-ticketing-reloading-server-X.Y.Z-full.jar` JAR file in the `build` directory.
