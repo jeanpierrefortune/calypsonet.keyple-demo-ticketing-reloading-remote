@@ -14,11 +14,11 @@ jobs:
     steps:
       - name: Check out repository code from ${{ github.repository }}/${{ github.ref }}
         uses: actions/checkout@v4
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
-          distribution: 'adopt'
+          java-version: '17'
+          distribution: 'temurin'
       - name: Set up Node JS
         uses: actions/setup-node@v4
         with:
@@ -29,7 +29,7 @@ jobs:
           dotnet-version: 6.0.x
       - name: Update permissions
         working-directory: .
-        run: chmod +x ./client/android/gradlew ./server/gradlew ./.github/scripts/*.sh
+        run: chmod +x ./client/android/gradlew ./client/android-light/gradlew ./server/gradlew ./.github/scripts/*.sh
       - name: Check version client Android
         working-directory: ./client/android/
         run: ../../.github/scripts/check_version.sh
@@ -45,11 +45,14 @@ jobs:
           dotnet test --no-build --verbosity normal
       - name: Build and Test client Android
         working-directory: ./client/android/
-        run: ./gradlew build test --info --stacktrace
+        run: ./gradlew clean build test --info --stacktrace
+      - name: Build and Test client Android Light
+        working-directory: ./client/android-light/
+        run: ./gradlew clean build test --info --stacktrace
       - name: Build and Test server
         working-directory: ./server/
         run: |
           cd ./dashboard-app
           npm install
           cd ..
-          ./gradlew build test --info --stacktrace
+          ./gradlew clean build test --info --stacktrace
