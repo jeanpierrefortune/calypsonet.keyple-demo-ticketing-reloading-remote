@@ -76,7 +76,7 @@ tasks {
     spotless {
         java {
             target("**/src/**/*.java")
-            licenseHeaderFile("${project.rootDir}/LICENSE_HEADER")
+            licenseHeaderFile("${project.rootDir}/LICENSE_HEADER_BSD_3-CLAUSE")
             importOrder("java", "javax", "org", "com", "")
             removeUnusedImports()
             googleJavaFormat()
