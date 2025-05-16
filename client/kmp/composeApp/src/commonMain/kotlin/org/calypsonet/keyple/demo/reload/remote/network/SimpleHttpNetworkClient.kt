@@ -19,6 +19,7 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.cookies.HttpCookies
+import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.headers
@@ -29,7 +30,6 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.serialization.json.Json
-import org.eclipse.keyple.keypleless.distributed.client.protocol.LogLevel
 import org.eclipse.keyple.keypleless.distributed.client.protocol.MessageDTO
 import org.eclipse.keyple.keypleless.distributed.client.spi.ServerIOException
 import org.eclipse.keyple.keypleless.distributed.client.spi.SyncNetworkClient
@@ -81,7 +81,7 @@ fun buildHttpClient(debugLog: LogLevel): HttpClient {
                 Napier.d(tag = "HTTP", message = message)
               }
             }
-        level = makeKtorLogLevel(debugLog)
+        level = debugLog
       }
     }
     install(HttpTimeout) {
@@ -91,13 +91,5 @@ fun buildHttpClient(debugLog: LogLevel): HttpClient {
     expectSuccess = true
     followRedirects = true
     install(HttpCookies)
-  }
-}
-
-private fun makeKtorLogLevel(log: LogLevel): io.ktor.client.plugins.logging.LogLevel {
-  return when (log) {
-    LogLevel.DEBUG -> io.ktor.client.plugins.logging.LogLevel.ALL
-    LogLevel.INFO -> io.ktor.client.plugins.logging.LogLevel.INFO
-    else -> io.ktor.client.plugins.logging.LogLevel.NONE
   }
 }

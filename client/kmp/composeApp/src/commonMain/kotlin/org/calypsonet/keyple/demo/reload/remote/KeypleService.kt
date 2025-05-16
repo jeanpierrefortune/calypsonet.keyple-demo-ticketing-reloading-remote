@@ -21,6 +21,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.request.get
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
@@ -43,10 +44,9 @@ import org.calypsonet.keyple.demo.reload.remote.network.SimpleHttpNetworkClient
 import org.calypsonet.keyple.demo.reload.remote.network.buildHttpClient
 import org.calypsonet.keyple.demo.reload.remote.nfc.write.PriorityCode
 import org.calypsonet.keyple.demo.reload.remote.nfc.write.WriteContract
-import org.eclipse.keyple.keypleless.distributed.client.protocol.KeypleError
 import org.eclipse.keyple.keypleless.distributed.client.protocol.KeypleResult
 import org.eclipse.keyple.keypleless.distributed.client.protocol.KeypleTerminal
-import org.eclipse.keyple.keypleless.distributed.client.protocol.LogLevel
+import org.eclipse.keyple.keypleless.distributed.client.protocol.Status
 import org.eclipse.keyple.keypleless.distributed.client.spi.LocalReader
 import org.eclipse.keyple.keypleless.distributed.client.spi.ServerIOException
 
@@ -102,7 +102,7 @@ class KeypleService(
   fun start() {
     loadServerConfig()
 
-    val server = SimpleHttpNetworkClient(serverConfig!!, buildHttpClient(serverConfig!!.logLevel))
+    val server = SimpleHttpNetworkClient(serverConfig!!, buildHttpClient(LogLevel.ALL))
 
     remoteService = KeypleTerminal(reader = reader, clientId = clientId, networkClient = server)
 
@@ -119,15 +119,9 @@ class KeypleService(
       val serverEndpoint = preferences[SERVER_ENDPOINT_KEY] ?: "/card/remote-plugin"
       val basicAuth = preferences[SERVER_BASIC_AUTH] ?: ""
 
-      val logLevel = LogLevel.DEBUG
-
       serverConfig =
           KeypleServerConfig(
-              "$serverProtocol://$serverIp",
-              serverPort,
-              serverEndpoint,
-              logLevel,
-              basicAuth = basicAuth)
+              "$serverProtocol://$serverIp", serverPort, serverEndpoint, basicAuth = basicAuth)
     }
   }
 
@@ -137,9 +131,8 @@ class KeypleService(
       val serverPort = preferences[SERVER_PORT_KEY] ?: 42080
       val serverProtocol = preferences[SERVER_PROTOCOL_KEY] ?: "http"
       val serverEndpoint = preferences[SERVER_ENDPOINT_KEY] ?: "/card/remote-plugin"
-      val logLevel = LogLevel.DEBUG
 
-      KeypleServerConfig("$serverProtocol://$serverIp", serverPort, serverEndpoint, logLevel)
+      KeypleServerConfig("$serverProtocol://$serverIp", serverPort, serverEndpoint)
     }
   }
 
@@ -242,7 +235,7 @@ class KeypleService(
 
         when (result) {
           is KeypleResult.Failure -> {
-            return@withContext KeypleResult.Failure(result.error)
+            return@withContext result
           }
           is KeypleResult.Success -> {
             cardRepository.saveCardSerial(result.data.applicationSerialNumber)
@@ -265,7 +258,7 @@ class KeypleService(
                 GenericSelectAppInputDto.serializer())
         when (result) {
           is KeypleResult.Failure -> {
-            return@withContext KeypleResult.Failure(result.error)
+            return@withContext result
           }
           is KeypleResult.Success -> {
             return@withContext KeypleResult.Success("Success")
@@ -292,7 +285,7 @@ class KeypleService(
                 WriteContract.serializer())
         when (result) {
           is KeypleResult.Failure -> {
-            return@withContext KeypleResult.Failure(result.error)
+            return@withContext result
           }
           is KeypleResult.Success -> {
             return@withContext KeypleResult.Success("Success")
@@ -311,15 +304,22 @@ class KeypleService(
     when (val result =
         remote.executeRemoteService(service, inputData, inputSerializer, OutputData.serializer())) {
       is KeypleResult.Failure -> {
-        Napier.e(tag = TAG, message = "Error executing service: ${result.error} ${result.data}")
-        return KeypleResult.Failure(result.error)
+        Napier.e(
+            tag = TAG,
+            message = "Error executing service: ${result.status} ${result.message} ${result.data}")
+        return KeypleResult.Failure(
+            status = result.status,
+            message =
+                "Error is ${result.status} - Server side: ${result.data?.statusCode} / ${result.data?.message}")
       }
       is KeypleResult.Success -> {
         if (result.data != null) {
           if (result.data!!.statusCode != 0) {
             Napier.i(tag = TAG, message = "Output = ${result.data!!.message}")
             return KeypleResult.Failure(
-                KeypleError(statusCode = result.data!!.statusCode, message = result.data!!.message))
+                status = Status.SERVER_ERROR,
+                message =
+                    "Server side error: ${result.data!!.statusCode} / ${result.data!!.message}")
           } else {
             val res = Json.encodeToString(result.data?.items ?: emptyList())
             Napier.i(tag = TAG, message = "Output = $res")
@@ -351,8 +351,10 @@ class KeypleService(
 
     when (val result = remote.executeRemoteService(service, inputDataStr)) {
       is KeypleResult.Failure -> {
-        Napier.e(tag = TAG, message = "Error executing service: ${result.error}, ${result.data}")
-        return KeypleResult.Failure(result.error)
+        Napier.e(
+            tag = TAG,
+            message = "Error executing service: ${result.status} ${result.message}, ${result.data}")
+        return KeypleResult.Failure(result.status, result.message)
       }
       is KeypleResult.Success -> {
         val resStr: String = result.data!!

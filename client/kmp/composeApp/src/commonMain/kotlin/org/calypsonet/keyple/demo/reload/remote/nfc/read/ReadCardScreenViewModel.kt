@@ -69,7 +69,7 @@ class ReadCardScreenViewModel(
     try {
       when (val result = keypleService.selectCardAndAnalyseContracts()) {
         is KeypleResult.Failure -> {
-          _state.value = ReadCardScreenState.DisplayError(result.error.message)
+          _state.value = ReadCardScreenState.DisplayError(result.message)
         }
         is KeypleResult.Success -> {
           _state.value = ReadCardScreenState.ShowCardContent

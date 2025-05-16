@@ -74,7 +74,7 @@ class WriteCardScreenViewModel(
           else writeMultiTripTitle(title.quantity)
       when (result) {
         is KeypleResult.Failure -> {
-          _state.value = WriteCardScreenState.DisplayError(result.error.message)
+          _state.value = WriteCardScreenState.DisplayError(result.message)
         }
         is KeypleResult.Success -> {
           _state.value = WriteCardScreenState.ShowTransactionSuccess

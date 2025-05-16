@@ -68,7 +68,7 @@ class PersonalizeCardScreenViewModel(
     try {
       when (val result = keypleService.personalizeCard()) {
         is KeypleResult.Failure -> {
-          _state.value = PersonalizeCardScreenState.DisplayError(result.error.message)
+          _state.value = PersonalizeCardScreenState.DisplayError(result.message)
         }
         is KeypleResult.Success -> {
           _state.value = PersonalizeCardScreenState.DisplaySuccess

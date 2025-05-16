@@ -33,7 +33,6 @@ fun main(args: Array<String>) = application {
     }
   }
 
-  // TODO move all this to a DI module
   val cardRepository = CardRepository()
   val keypleService =
       KeypleService(
