@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- Added the `GET` REST resource `/export-card-selection-scenario` to allow the client to retrieve an exported card
+  selection scenario.
+- Added server-side management of the `initialCardContent` JSON property, to enable import of the processed card 
+  selection scenario.
+- Added a Kotlin Multiplatform client for Android and iOS platforms into `client/interop-mobile-multiplatform` directory.
+### Changed
+- Rename directory `client/android` to `client/keyple-mobile-android`
+### Removed
+- Removed the Android Light client
 
 ## [2025.05.23]
 ### Fixed
