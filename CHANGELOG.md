@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
+## [2025.05.23]
 ### Fixed
 - SAM presence observation following PC/SC plugin upgrade.
 ### Upgraded
@@ -146,7 +148,8 @@ New dependencies
 - `keyple-plugin-android-omapi-java-lib:2.0.1`
 - `keyple-util-java-lib:2.3.0`
 
-[Unreleased]: https://github.com/calypsonet/keyple-demo-ticketing-reloading-remote/compare/2025.03.21...HEAD
+[Unreleased]: https://github.com/calypsonet/keyple-demo-ticketing-reloading-remote/compare/2025.05.23...HEAD
+[2025.05.23]: https://github.com/calypsonet/keyple-demo-ticketing-reloading-remote/compare/2025.03.21...2025.05.23
 [2025.03.21]: https://github.com/calypsonet/keyple-demo-ticketing-reloading-remote/compare/2024.10.21...2025.03.21
 [2024.10.21]: https://github.com/calypsonet/keyple-demo-ticketing-reloading-remote/compare/2024.10.01...2024.10.21
 [2024.10.01]: https://github.com/calypsonet/keyple-demo-ticketing-reloading-remote/compare/2024.09.20...2024.10.01
