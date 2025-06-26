@@ -132,6 +132,12 @@ class PersonalizationActivity : AbstractCardActivity() {
     withContext(Dispatchers.IO) {
       try {
         val smartCard = ticketingService.getSmartCard(selectedDeviceReaderName, aidEnums)
+        val cardType =
+            when (smartCard) {
+              is CalypsoCard -> "CALYPSO: DF name " + HexUtil.toHex(smartCard.dfName)
+              is StorageCard -> smartCard.productType.name
+              else -> "unexpected card type"
+            }
         val cardIssuanceInput = CardIssuanceInputDto(pluginType)
         val cardIssuanceOutput =
             localServiceClient.executeRemoteService(
@@ -166,12 +172,13 @@ class PersonalizationActivity : AbstractCardActivity() {
             when (smartCard) {
               is CalypsoCard -> {
                 launchInvalidCardResponse(
+                    cardType,
                     String.format(
                         getString(R.string.card_invalid_structure),
                         HexUtil.toHex(smartCard!!.applicationSubtype)))
               }
               is StorageCard -> {
-                launchInvalidCardResponse(getString(R.string.storage_card_invalid))
+                launchInvalidCardResponse(cardType, getString(R.string.storage_card_invalid))
               }
               else -> {}
             } // card rejected
@@ -179,7 +186,7 @@ class PersonalizationActivity : AbstractCardActivity() {
         }
       } catch (e: IllegalStateException) {
         Timber.e(e)
-        launchInvalidCardResponse(e.message!!)
+        launchInvalidCardResponse("Undetermined card type", e.message!!)
       } catch (e: Exception) {
         Timber.e(e)
         launchExceptionResponse(e)

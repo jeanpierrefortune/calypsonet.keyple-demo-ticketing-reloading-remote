@@ -12,7 +12,9 @@ package org.calypsonet.keyple.demo.reload.remote.ui.cardsummary
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.util.Log
 import android.view.View
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import org.calypsonet.keyple.demo.reload.remote.R
 import org.calypsonet.keyple.demo.reload.remote.data.model.CardReaderResponse
@@ -107,8 +109,52 @@ class CardSummaryActivity : AbstractDemoActivity() {
 
     if (!cardContent.cardType.isNullOrBlank()) {
       activityCardSummaryBinding.cardTypeLabel.visibility = View.VISIBLE
-      activityCardSummaryBinding.cardTypeLabel.text = getString(R.string.card_type, cardContent.cardType)
+      activityCardSummaryBinding.cardTypeLabel.text =
+          getString(R.string.card_type, cardContent.cardType)
+
+      // DEBUG: Informations sur le cardTypeLabel
+      Log.d("CardTypeDebug", "=== DEBUG CARD TYPE ===")
+      Log.d("CardTypeDebug", "cardType value: '${cardContent.cardType}'")
+      Log.d(
+          "CardTypeDebug",
+          "cardTypeLabel visibility: ${activityCardSummaryBinding.cardTypeLabel.visibility}")
+      Log.d(
+          "CardTypeDebug", "cardTypeLabel text: '${activityCardSummaryBinding.cardTypeLabel.text}'")
+
+      // Forcer un post pour vérifier après le layout
+      activityCardSummaryBinding.cardTypeLabel.post {
+        Log.d("CardTypeDebug", "=== AFTER LAYOUT ===")
+        Log.d(
+            "CardTypeDebug",
+            "cardTypeLabel width: ${activityCardSummaryBinding.cardTypeLabel.width}")
+        Log.d(
+            "CardTypeDebug",
+            "cardTypeLabel height: ${activityCardSummaryBinding.cardTypeLabel.height}")
+        Log.d("CardTypeDebug", "cardTypeLabel x: ${activityCardSummaryBinding.cardTypeLabel.x}")
+        Log.d("CardTypeDebug", "cardTypeLabel y: ${activityCardSummaryBinding.cardTypeLabel.y}")
+        Log.d(
+            "CardTypeDebug",
+            "cardTypeLabel alpha: ${activityCardSummaryBinding.cardTypeLabel.alpha}")
+        Log.d(
+            "CardTypeDebug",
+            "cardTypeLabel scaleX: ${activityCardSummaryBinding.cardTypeLabel.scaleX}")
+        Log.d(
+            "CardTypeDebug",
+            "cardTypeLabel scaleY: ${activityCardSummaryBinding.cardTypeLabel.scaleY}")
+
+        val layoutParams =
+            activityCardSummaryBinding.cardTypeLabel.layoutParams as ConstraintLayout.LayoutParams
+        Log.d(
+            "CardTypeDebug",
+            "margins - top: ${layoutParams.topMargin}, start: ${layoutParams.marginStart}, end: ${layoutParams.marginEnd}")
+      }
+    } else {
+      Log.d("CardTypeDebug", "cardType is null or blank: '${cardContent.cardType}'")
     }
+
+    // Debug du statut
+    Log.d("CardTypeDebug", "Card status: ${cardContent.status}")
+    Log.d("CardTypeDebug", "Error message: ${cardContent.errorMessage}")
 
     activityCardSummaryBinding.animation.playAnimation()
 

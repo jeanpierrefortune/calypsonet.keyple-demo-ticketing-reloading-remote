@@ -170,10 +170,11 @@ abstract class AbstractCardActivity :
     readerRepository.unregisterPlugin(AndroidOmapiPlugin.PLUGIN_NAME)
   }
 
-  fun launchInvalidCardResponse(message: String) {
+  fun launchInvalidCardResponse(cardType: String, message: String) {
     runOnUiThread {
       changeDisplay(
-          CardReaderResponse(Status.INVALID_CARD, "", 0, arrayListOf(), arrayListOf(), "", message),
+          CardReaderResponse(
+              Status.INVALID_CARD, cardType, 0, arrayListOf(), arrayListOf(), "", message),
           finishActivity =
               device !=
                   DeviceEnum.CONTACTLESS_CARD // /Only with NFC we can come back to 'wait for device
