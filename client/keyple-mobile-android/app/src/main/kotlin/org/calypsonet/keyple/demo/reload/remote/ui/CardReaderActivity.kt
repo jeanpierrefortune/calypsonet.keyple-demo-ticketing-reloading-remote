@@ -36,8 +36,10 @@ import org.calypsonet.keyple.demo.reload.remote.domain.TicketingService
 import org.calypsonet.keyple.demo.reload.remote.ui.cardsummary.CardSummaryActivity
 import org.eclipse.keyple.core.service.KeyplePluginException
 import org.eclipse.keyple.core.util.HexUtil
+import org.eclipse.keypop.calypso.card.card.CalypsoCard
 import org.eclipse.keypop.reader.CardReaderEvent
 import org.eclipse.keypop.reader.ReaderCommunicationException
+import org.eclipse.keypop.storagecard.card.StorageCard
 import timber.log.Timber
 
 @ActivityScoped
@@ -59,13 +61,18 @@ class CardReaderActivity : AbstractCardActivity() {
     try {
       when (device) {
         DeviceEnum.CONTACTLESS_CARD -> {
-          val nfcManager = getSystemService(NFC_SERVICE) as NfcManager
-          if (nfcManager.defaultAdapter?.isEnabled == true) {
-            showPresentNfcCardInstructions()
-            initAndActivateAndroidKeypleNfcReader()
+          if (!isBluebirdDevice) {
+            val nfcManager = getSystemService(NFC_SERVICE) as NfcManager
+            if (nfcManager.defaultAdapter?.isEnabled == true) {
+              showPresentNfcCardInstructions()
+              initAndActivateCardReader()
+            } else {
+              launchExceptionResponse(
+                  IllegalStateException("NFC not activated"), finishActivity = true)
+            }
           } else {
-            launchExceptionResponse(
-                IllegalStateException("NFC not activated"), finishActivity = true)
+            showPresentNfcCardInstructions()
+            initAndActivateCardReader()
           }
         }
         DeviceEnum.SIM -> {
@@ -97,7 +104,7 @@ class CardReaderActivity : AbstractCardActivity() {
     activityCardReaderBinding.loadingAnimation.cancelAnimation()
     try {
       if (DeviceEnum.getDeviceEnum(prefData.loadDeviceType()!!) == DeviceEnum.CONTACTLESS_CARD) {
-        deactivateAndClearAndroidKeypleNfcReader()
+        deactivateAndClearCardReader()
       } else {
         deactivateAndClearOmapiReader()
       }
@@ -114,7 +121,10 @@ class CardReaderActivity : AbstractCardActivity() {
       runOnUiThread { showNowLoadingInformation() }
       GlobalScope.launch {
         remoteServiceExecution(
-            selectedDeviceReaderName, pluginType, AppSettings.aidEnums, "ISO_14443_4")
+            selectedDeviceReaderName,
+            pluginType,
+            AppSettings.aidEnums,
+            "ISO_14443_4_LOGICAL_PROTOCOL")
       }
     }
   }
@@ -127,15 +137,14 @@ class CardReaderActivity : AbstractCardActivity() {
   ) {
     withContext(Dispatchers.IO) {
       try {
-        val calypsoCard =
-            ticketingService.getCalypsoCard(selectedDeviceReaderName, aidEnums, protocol)
+        val smartCard = ticketingService.getSmartCard(selectedDeviceReaderName, aidEnums)
         val analyseContractsInput = AnalyzeContractsInputDto(pluginType)
         // un-mock for run
         val compatibleContractOutput =
             localServiceClient.executeRemoteService(
                 RemoteServiceId.READ_CARD_AND_ANALYZE_CONTRACTS.name,
                 selectedDeviceReaderName,
-                calypsoCard,
+                smartCard,
                 analyseContractsInput,
                 AnalyzeContractsOutputDto::class.java)
 
@@ -150,22 +159,51 @@ class CardReaderActivity : AbstractCardActivity() {
                           .CONTACTLESS_CARD // Only with NFC we can come back to 'wait for device
               // screen'
 
-              changeDisplay(
-                  CardReaderResponse(
-                      status, "", contracts.size, buildCardTitles(contracts), arrayListOf(), ""),
-                  HexUtil.toHex(calypsoCard!!.applicationSerialNumber),
-                  finishActivity)
+              when (smartCard) {
+                is CalypsoCard -> {
+                  changeDisplay(
+                      CardReaderResponse(
+                          status,
+                          "CALYPSO: DF name "+ HexUtil.toHex(smartCard.dfName),
+                          contracts.size,
+                          buildCardTitles(contracts),
+                          arrayListOf(),
+                          ""),
+                      HexUtil.toHex(smartCard!!.applicationSerialNumber),
+                      finishActivity)
+                }
+                is StorageCard -> {
+                  changeDisplay(
+                      CardReaderResponse(
+                          status,
+                          smartCard.productType.name,
+                          contracts.size,
+                          buildCardTitles(contracts),
+                          arrayListOf(),
+                          ""),
+                      HexUtil.toHex(smartCard!!.uid),
+                      finishActivity)
+                }
+              }
             }
           } // success,
           1 -> {
             launchServerErrorResponse()
           } // server not ready,
           2 -> {
-            launchInvalidCardResponse(
-                String.format(
-                    getString(R.string.card_invalid_structure),
-                    HexUtil.toHex(calypsoCard!!.applicationSubtype)))
-          } // card rejected
+            when (smartCard) {
+              is CalypsoCard -> {
+                launchInvalidCardResponse(
+                    String.format(
+                        getString(R.string.card_invalid_structure),
+                        HexUtil.toHex(smartCard!!.applicationSubtype)))
+              }
+              is StorageCard -> {
+                launchInvalidCardResponse(getString(R.string.storage_card_invalid))
+              }
+              else -> {}
+            } // card rejected
+          }
           3 -> {
             launchInvalidCardResponse(getString(R.string.card_not_personalized))
           } // card not personalized
@@ -234,14 +272,14 @@ class CardReaderActivity : AbstractCardActivity() {
 
   override fun changeDisplay(
       cardReaderResponse: CardReaderResponse,
-      applicationSerialNumber: String?,
+      uniqueIdentifier: String?,
       finishActivity: Boolean?
   ) {
     activityCardReaderBinding.loadingAnimation?.cancelAnimation()
     activityCardReaderBinding.cardAnimation?.cancelAnimation()
     val intent = Intent(this, CardSummaryActivity::class.java)
     intent.putExtra(CARD_CONTENT, cardReaderResponse)
-    intent.putExtra(CARD_APPLICATION_NUMBER, applicationSerialNumber)
+    intent.putExtra(CARD_APPLICATION_NUMBER, uniqueIdentifier)
     startActivity(intent)
     if (finishActivity == true) {
       finish()

@@ -9,15 +9,21 @@
  ****************************************************************************** */
 package org.calypsonet.keyple.demo.reload.remote.ui
 
+import android.os.Build
 import android.os.Bundle
 import javax.inject.Inject
 import kotlin.jvm.Throws
 import org.calypsonet.keyple.demo.common.constant.CardConstant
 import org.calypsonet.keyple.demo.reload.remote.data.ReaderRepository
 import org.calypsonet.keyple.demo.reload.remote.data.model.AppSettings
+import org.calypsonet.keyple.demo.reload.remote.data.model.CardProtocolEnum
 import org.calypsonet.keyple.demo.reload.remote.data.model.CardReaderResponse
 import org.calypsonet.keyple.demo.reload.remote.data.model.DeviceEnum
 import org.calypsonet.keyple.demo.reload.remote.data.model.Status
+import org.calypsonet.keyple.plugin.bluebird.BluebirdConstants
+import org.calypsonet.keyple.plugin.bluebird.BluebirdContactlessProtocols
+import org.calypsonet.keyple.plugin.bluebird.BluebirdPluginFactoryProvider
+import org.calypsonet.keyple.plugin.storagecard.ApduInterpreterFactoryProvider
 import org.eclipse.keyple.core.service.KeyplePluginException
 import org.eclipse.keyple.core.service.Plugin
 import org.eclipse.keyple.distributed.LocalServiceClient
@@ -43,19 +49,22 @@ abstract class AbstractCardActivity :
   lateinit var device: DeviceEnum
   lateinit var pluginType: String
 
+  val isBluebirdDevice = Build.MANUFACTURER?.lowercase()?.contains("bluebird") == true
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     device = DeviceEnum.getDeviceEnum(prefData.loadDeviceType()!!)
     selectedDeviceReaderName =
         when (device) {
           DeviceEnum.CONTACTLESS_CARD -> {
-            pluginType = "Android NFC"
+            pluginType = if (isBluebirdDevice) "Bluebird" else "Android Nfc"
             AppSettings.aidEnums.clear()
             AppSettings.aidEnums.add(CardConstant.AID_KEYPLE_GENERIC)
             AppSettings.aidEnums.add(CardConstant.AID_CD_LIGHT_GTML)
             AppSettings.aidEnums.add(CardConstant.AID_CALYPSO_LIGHT)
             AppSettings.aidEnums.add(CardConstant.AID_NORMALIZED_IDF)
-            AndroidNfcConstants.READER_NAME
+            if (isBluebirdDevice) BluebirdConstants.CARD_READER_NAME
+            else AndroidNfcConstants.READER_NAME
           }
           DeviceEnum.SIM -> {
             pluginType = "Android OMAPI"
@@ -86,11 +95,17 @@ abstract class AbstractCardActivity :
 
   /** Android Nfc Reader is strongly dependent and Android Activity component. */
   @Throws(KeyplePluginException::class)
-  fun initAndActivateAndroidKeypleNfcReader() {
+  fun initAndActivateCardReader() {
     val plugin: Plugin? =
         readerRepository.registerPlugin(
-            AndroidNfcPluginFactoryProvider.provideFactory(
-                AndroidNfcConfig(this@AbstractCardActivity)))
+            if (isBluebirdDevice) {
+              BluebirdPluginFactoryProvider.provideFactory(
+                  this@AbstractCardActivity, ApduInterpreterFactoryProvider.provideFactory())
+            } else {
+              AndroidNfcPluginFactoryProvider.provideFactory(
+                  AndroidNfcConfig(
+                      this@AbstractCardActivity, ApduInterpreterFactoryProvider.provideFactory()))
+            })
 
     if (plugin == null) {
       return
@@ -103,18 +118,34 @@ abstract class AbstractCardActivity :
     observableCardReader.setReaderObservationExceptionHandler(this@AbstractCardActivity)
 
     (observableCardReader as ConfigurableCardReader).activateProtocol(
-        AndroidNfcSupportedProtocols.ISO_14443_4.name, "ISO_14443_4")
+        if (isBluebirdDevice) {
+          BluebirdContactlessProtocols.ISO_14443_4_A.name
+        } else {
+          AndroidNfcSupportedProtocols.ISO_14443_4.name
+        },
+        CardProtocolEnum.ISO_14443_4_LOGICAL_PROTOCOL.name)
+    (observableCardReader as ConfigurableCardReader).activateProtocol(
+        if (isBluebirdDevice) {
+          BluebirdContactlessProtocols.MIFARE_ULTRALIGHT.name
+        } else {
+          AndroidNfcSupportedProtocols.MIFARE_ULTRALIGHT.name
+        },
+        CardProtocolEnum.MIFARE_ULTRALIGHT_LOGICAL_PROTOCOL.name)
+    if (isBluebirdDevice) {
+      (observableCardReader as ConfigurableCardReader).activateProtocol(
+          BluebirdContactlessProtocols.ST25_SRT512.name,
+          CardProtocolEnum.ST25_SRT512_LOGICAL_PROTOCOL.name)
+    }
 
     observableCardReader.startCardDetection(ObservableCardReader.DetectionMode.REPEATING)
   }
 
   @Throws(KeyplePluginException::class)
-  fun deactivateAndClearAndroidKeypleNfcReader() {
+  fun deactivateAndClearCardReader() {
     (readerRepository.getReader(selectedDeviceReaderName) as ObservableCardReader)
         .stopCardDetection()
-    (readerRepository.getReader(selectedDeviceReaderName) as ConfigurableCardReader)
-        .deactivateProtocol(AndroidNfcSupportedProtocols.ISO_14443_4.name)
-    readerRepository.unregisterPlugin(AndroidNfcConstants.PLUGIN_NAME)
+    readerRepository.unregisterPlugin(
+        if (isBluebirdDevice) BluebirdConstants.PLUGIN_NAME else AndroidNfcConstants.PLUGIN_NAME)
   }
 
   /**

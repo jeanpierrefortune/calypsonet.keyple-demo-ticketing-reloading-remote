@@ -34,7 +34,9 @@ import org.calypsonet.keyple.demo.reload.remote.databinding.ActivityCardReaderBi
 import org.calypsonet.keyple.demo.reload.remote.di.scopes.ActivityScoped
 import org.calypsonet.keyple.demo.reload.remote.domain.TicketingService
 import org.eclipse.keyple.core.util.HexUtil
+import org.eclipse.keypop.calypso.card.card.CalypsoCard
 import org.eclipse.keypop.reader.CardReaderEvent
+import org.eclipse.keypop.storagecard.card.StorageCard
 import timber.log.Timber
 
 @ActivityScoped
@@ -54,7 +56,7 @@ class ReloadActivity : AbstractCardActivity() {
     try {
       if (DeviceEnum.getDeviceEnum(prefData.loadDeviceType()!!) == DeviceEnum.CONTACTLESS_CARD) {
         showPresentNfcCardInstructions()
-        initAndActivateAndroidKeypleNfcReader()
+        initAndActivateCardReader()
       } else {
         showNowLoadingInformation()
         initOmapiReader {
@@ -74,7 +76,7 @@ class ReloadActivity : AbstractCardActivity() {
     activityCardReaderBinding.loadingAnimation.cancelAnimation()
     try {
       if (DeviceEnum.getDeviceEnum(prefData.loadDeviceType()!!) == DeviceEnum.CONTACTLESS_CARD) {
-        deactivateAndClearAndroidKeypleNfcReader()
+        deactivateAndClearCardReader()
       }
     } catch (e: Exception) {
       Timber.e(e)
@@ -87,7 +89,10 @@ class ReloadActivity : AbstractCardActivity() {
       runOnUiThread { showNowLoadingInformation() }
       GlobalScope.launch {
         remoteServiceExecution(
-            selectedDeviceReaderName, pluginType, AppSettings.aidEnums, "ISO_14443_4")
+            selectedDeviceReaderName,
+            pluginType,
+            AppSettings.aidEnums,
+            "ISO_14443_4_LOGICAL_PROTOCOL")
       }
     }
   }
@@ -100,13 +105,23 @@ class ReloadActivity : AbstractCardActivity() {
   ) {
     withContext(Dispatchers.IO) {
       try {
-        val readCardSerialNumber = intent.getStringExtra(CARD_APPLICATION_NUMBER)
-        val calypsoCard =
-            ticketingService.getCalypsoCard(selectedDeviceReaderName, aidEnums, protocol)
-        if (HexUtil.toHex(calypsoCard!!.applicationSerialNumber) != readCardSerialNumber) {
-          // Ticket would have been bought for the Card read at step one.
-          // To avoid swapping we check thant loading is done on the same card
-          throw IllegalStateException("Not the same card")
+        val readCardUniqueIdentifier = intent.getStringExtra(CARD_APPLICATION_NUMBER)
+        val smartCard = ticketingService.getSmartCard(selectedDeviceReaderName, aidEnums)
+        when (smartCard) {
+          is CalypsoCard -> {
+            if (HexUtil.toHex(smartCard!!.applicationSerialNumber) != readCardUniqueIdentifier) {
+              // Ticket would have been bought for the Card read at step one.
+              // To avoid swapping we check thant loading is done on the same card
+              throw IllegalStateException("Not the same card")
+            }
+          }
+          is StorageCard -> {
+            if (HexUtil.toHex(smartCard!!.uid) != readCardUniqueIdentifier) {
+              // Ticket would have been bought for the Card read at step one.
+              // To avoid swapping we check thant loading is done on the same card
+              throw IllegalStateException("Not the same card")
+            }
+          }
         }
 
         val analyseContractsInput = AnalyzeContractsInputDto(pluginType)
@@ -114,7 +129,7 @@ class ReloadActivity : AbstractCardActivity() {
         localServiceClient.executeRemoteService(
             RemoteServiceId.READ_CARD_AND_ANALYZE_CONTRACTS.name,
             selectedDeviceReaderName,
-            calypsoCard,
+            smartCard,
             analyseContractsInput,
             AnalyzeContractsOutputDto::class.java)
 
@@ -130,7 +145,7 @@ class ReloadActivity : AbstractCardActivity() {
             localServiceClient.executeRemoteService(
                 RemoteServiceId.READ_CARD_AND_WRITE_CONTRACT.name,
                 selectedDeviceReaderName,
-                calypsoCard,
+                smartCard,
                 writeContractInputDto,
                 WriteContractOutputDto::class.java)
 
@@ -147,11 +162,19 @@ class ReloadActivity : AbstractCardActivity() {
             launchServerErrorResponse()
           } // server not ready,
           2 -> {
-            launchInvalidCardResponse(
-                String.format(
-                    getString(R.string.card_invalid_structure),
-                    HexUtil.toHex(calypsoCard!!.applicationSubtype)))
-          } // card rejected
+            when (smartCard) {
+              is CalypsoCard -> {
+                launchInvalidCardResponse(
+                    String.format(
+                        getString(R.string.card_invalid_structure),
+                        HexUtil.toHex(smartCard!!.applicationSubtype)))
+              }
+              is StorageCard -> {
+                launchInvalidCardResponse(getString(R.string.storage_card_invalid))
+              }
+              else -> {}
+            } // card rejected
+          }
         }
       } catch (e: IllegalStateException) {
         Timber.e(e)
