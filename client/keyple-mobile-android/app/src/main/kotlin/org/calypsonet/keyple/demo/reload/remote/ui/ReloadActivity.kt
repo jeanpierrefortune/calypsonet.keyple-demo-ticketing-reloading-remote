@@ -160,7 +160,7 @@ class ReloadActivity : AbstractCardActivity() {
             runOnUiThread {
               changeDisplay(
                   CardReaderResponse(
-                      Status.SUCCESS, "", ticketToBeLoaded, arrayListOf(), arrayListOf(), ""),
+                      Status.SUCCESS, cardType, ticketToBeLoaded, arrayListOf(), arrayListOf(), ""),
                   finishActivity = true)
             }
           }
