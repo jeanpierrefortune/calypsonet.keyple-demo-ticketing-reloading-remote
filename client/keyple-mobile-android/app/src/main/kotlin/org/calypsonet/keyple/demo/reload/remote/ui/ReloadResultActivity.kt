@@ -35,7 +35,8 @@ class ReloadResultActivity : AbstractDemoActivity() {
     toolbarBinding.toolbarLogo.setImageResource(R.drawable.ic_logo_white)
 
     val status = Status.getStatus(intent.getStringExtra(STATUS))
-    val cardContent: CardReaderResponse? = intent.getParcelableExtra(AbstractCardActivity.CARD_CONTENT)
+    val cardContent: CardReaderResponse? =
+        intent.getParcelableExtra(AbstractCardActivity.CARD_CONTENT)
 
     activityChargeResultBinding.tryBtn.setOnClickListener { onBackPressed() }
     activityChargeResultBinding.cancelBtn.setOnClickListener {

@@ -108,6 +108,8 @@ class PersonalizationActivity : AbstractCardActivity() {
     intent.putExtra(ReloadResultActivity.IS_PERSONALIZATION_RESULT, true)
     intent.putExtra(ReloadResultActivity.STATUS, cardReaderResponse.status.name)
     intent.putExtra(ReloadResultActivity.MESSAGE, cardReaderResponse.errorMessage)
+    intent.putExtra(CARD_CONTENT, cardReaderResponse)
+    intent.putExtra(CARD_APPLICATION_NUMBER, uniqueIdentifier)
     startActivity(intent)
     if (finishActivity == true) {
       finish()
@@ -152,13 +154,15 @@ class PersonalizationActivity : AbstractCardActivity() {
               when (smartCard) {
                 is CalypsoCard -> {
                   changeDisplay(
-                      CardReaderResponse(Status.SUCCESS, "", 0, arrayListOf(), arrayListOf(), ""),
+                      CardReaderResponse(
+                          Status.SUCCESS, cardType, 0, arrayListOf(), arrayListOf(), ""),
                       uniqueIdentifier = HexUtil.toHex(smartCard!!.applicationSerialNumber),
                       finishActivity = true)
                 }
                 is StorageCard -> {
                   changeDisplay(
-                      CardReaderResponse(Status.SUCCESS, "", 0, arrayListOf(), arrayListOf(), ""),
+                      CardReaderResponse(
+                          Status.SUCCESS, cardType, 0, arrayListOf(), arrayListOf(), ""),
                       uniqueIdentifier = HexUtil.toHex(smartCard!!.uid),
                       finishActivity = true)
                 }

@@ -156,11 +156,6 @@ abstract class AbstractCardActivity :
   fun initOmapiReader(callback: () -> Unit) {
     AndroidOmapiPluginFactoryProvider(this@AbstractCardActivity) {
       readerRepository.registerPlugin(it)
-      //            (readerRepository.getReader(AndroidOmapiReader.READER_NAME_SIM_1) as
-      // ConfigurableCardReader).activateProtocol(
-      //                ContactCardCommonProtocol.ISO_7816_3.name,
-      //                ContactCardCommonProtocol.ISO_7816_3.name
-      //            )
       callback()
     }
   }
